@@ -117,15 +117,18 @@ LDFLAGS =
 ###############################################################################
 ### GCC -- with MPI and OpenMP 
 ###############################################################################
-#OPENMP_FLAGS = -DHAVE_OPENMP -fopenmp
-#OPENMP_LDFLAGS = -fopenmp
-#MPI_FLAGS = -DHAVE_MPI
-#OPTFLAGS = -g -O2
+DAAP_PATH = /usr/local
+OPENMP_FLAGS = -DHAVE_OPENMP -fopenmp
+OPENMP_LDFLAGS = -fopenmp
+MPI_FLAGS = -DHAVE_MPI
+OPTFLAGS = -g -O2
+DAAPFLAGS = -I${DAAP_PATH}/include
+DAAPLDFLAGS = -L${DAAP_PATH}/lib -ldaap_log
 #
-#CXX=mpicxx
-#CXXFLAGS = -std=c++11 $(OPTFLAGS) -Wpedantic
-#CPPFLAGS = $(MPI_FLAGS) $(OPENMP_FLAGS)
-#LDFLAGS = $(OPENMP_LDFLAGS) 
+CXX=mpicxx
+CXXFLAGS = -std=c++11 $(OPTFLAGS) -Wpedantic
+CPPFLAGS = $(MPI_FLAGS) $(OPENMP_FLAGS) $(DAAPFLAGS)
+LDFLAGS = $(OPENMP_LDFLAGS) $(DAAPLDFLAGS)
 
 
 ###############################################################################
@@ -324,7 +327,8 @@ git_vers.hh:
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} -c $< -o $@
 
 ${Quicksilver_EXE}: git_hash.hh git_vers.hh ${CC_OBJECTS}  
-	${CXX} ${CXXFLAGS} ${LDFLAGS} -o ${Quicksilver_EXE} ${CC_OBJECTS}
+	#${CXX} ${CXXFLAGS} ${LDFLAGS} -o ${Quicksilver_EXE} ${CC_OBJECTS}
+	${CXX} ${CXXFLAGS} -o ${Quicksilver_EXE} ${CC_OBJECTS} ${LDFLAGS}
 
 clean:
 	rm -f *.o git_hash.hh git_vers.hh .depend load.map *.core *.optrpt

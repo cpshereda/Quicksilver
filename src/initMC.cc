@@ -23,6 +23,8 @@
 #include "cudaUtils.hh"
 #include "cudaFunctions.hh"
 
+#include "daap_log.h"
+
 using std::vector;
 using std::string;
 using std::set;
@@ -92,7 +94,7 @@ namespace
             monteCarlo->processor_info->use_gpu = 1;
             int GPUID = monteCarlo->processor_info->rank%Ngpus;
             monteCarlo->processor_info->gpu_id = GPUID;
-            
+
             #if defined(HAVE_OPENMP_TARGET)
                 omp_set_default_device(GPUID);
             #endif
@@ -117,7 +119,7 @@ namespace
 #endif
 
          //printf("monteCarlo->processor_info->use_gpu = %d\n", monteCarlo->processor_info->use_gpu);
-         
+
    }
 }
 
@@ -154,20 +156,20 @@ namespace
         const CrossSectionParameters& cp = crossSectionIter->second;
         crossSection.insert(make_pair(cp.name, Polynomial(cp.aa, cp.bb, cp.cc, cp.dd, cp.ee)));
      }
-     
+
      int num_isotopes  = 0;
      int num_materials = 0;
-     
+
      for( auto matIter = params.materialParams.begin(); matIter != params.materialParams.end(); matIter++ )
      {
         const MaterialParameters& mp = matIter->second;
         num_isotopes += mp.nIsotopes;
         num_materials++;
      }
-     
+
      monteCarlo->_nuclearData->_isotopes.reserve( num_isotopes, VAR_MEM );
      monteCarlo->_materialDatabase->_mat.reserve( num_materials, VAR_MEM );
-     
+
      for (auto matIter = params.materialParams.begin();
           matIter != params.materialParams.end(); matIter++)
      {
@@ -175,7 +177,7 @@ namespace
         Material material(mp.name, mp.mass);
         double nuBar = params.crossSectionParams.at(mp.fissionCrossSection).nuBar;
         material._iso.reserve( mp.nIsotopes, VAR_MEM );
-        
+
         for (int iIso=0; iIso<mp.nIsotopes; ++iIso)
         {
            int isotopeGid = monteCarlo->_nuclearData->addIsotope(
@@ -188,7 +190,7 @@ namespace
               mp.fissionCrossSectionRatio,
               mp.scatteringCrossSectionRatio,
               mp.absorptionCrossSectionRatio);
-           
+
            // atomFraction for each isotope is 1/nIsotopes.  Treats all
            // isotopes as equally prevalent.
            material.addIsotope(Isotope(isotopeGid, 1.0/mp.nIsotopes));
@@ -249,30 +251,30 @@ namespace
       int xDom = params.simulationParams.xDom;
       int yDom = params.simulationParams.yDom;
       int zDom = params.simulationParams.zDom;
-      
+
       int myRank, nRanks;
       mpiComm_rank(MPI_COMM_WORLD, &myRank);
       mpiComm_size(MPI_COMM_WORLD, &nRanks);
-      
+
       int nDomainsPerRank = 1; // SAD set this to 1 for some types of tests
       if( xDom == 0 && yDom == 0 && zDom == 0 )
          if (nRanks == 1)
             nDomainsPerRank = 4;
-      
+
       DecompositionObject ddc(myRank, nRanks, nDomainsPerRank, 0);
       vector<int> myDomainGid = ddc.getAssignedDomainGids();
-      
+
       GlobalFccGrid globalGrid(nx, ny, nz, lx, ly, lz);
-      
+
       int nCenters = nRanks*nDomainsPerRank;
       vector<MC_Vector> domainCenter;
       if (xDom == 0 && yDom == 0 && zDom == 0)
          initializeCentersRandomly(nCenters, globalGrid, domainCenter);
       else
          initializeCentersGrid(lx, ly, lz, xDom, yDom, zDom, domainCenter);
-      
+
       qs_assert(domainCenter.size() == nCenters);
-      
+
       vector<MeshPartition> partition;
       {
          int foremanRank = myRank;
@@ -282,7 +284,7 @@ namespace
             qs_assert(ddc.getIndex(myDomainGid[ii]) == ii);
          }
       }
-      
+
       CommObject* comm = 0;
       if (nRanks == 1)
          comm = new SharedMemoryCommObject(partition);
@@ -290,19 +292,19 @@ namespace
          comm = new MpiCommObject(MPI_COMM_WORLD, ddc);
       else
          qs_assert(false);
-      
+
       for (unsigned ii=0; ii<myDomainGid.size(); ++ii)
       {
          if (myRank == 0) { cout << "Building partition " << myDomainGid[ii] << endl; }
          partition[ii].buildMeshPartition(globalGrid, domainCenter, comm);
       }
-      
+
       mpiBarrier(MPI_COMM_WORLD);
       if (myRank ==0 ) { cout << "done building" << endl; }
       mpiBarrier(MPI_COMM_WORLD);
-      
+
       delete comm;
-      
+
       monteCarlo->domain.reserve(myDomainGid.size(),VAR_MEM);
       monteCarlo->domain.Open();
       for (unsigned ii=0; ii<myDomainGid.size(); ++ii)
@@ -313,10 +315,10 @@ namespace
                       params.simulationParams.nGroups));
       }
       monteCarlo->domain.Close();
-      
+
       if (nRanks == 1)
          consistencyCheck(myRank, monteCarlo->domain);
-      
+
       if (myRank == 0) { cout << "Finished initMesh" <<endl; }
    }
 }
@@ -326,7 +328,7 @@ namespace
    void initTallies(MonteCarlo* monteCarlo, const Parameters& params)
    {
       monteCarlo->_tallies->InitializeTallies(
-         monteCarlo,  
+         monteCarlo,
          params.simulationParams.balanceTallyReplications,
          params.simulationParams.fluxTallyReplications,
          params.simulationParams.cellTallyReplications
@@ -401,20 +403,20 @@ namespace
          double fission;
          double scatter;
       };
-  
+
       NuclearData* nd = monteCarlo->_nuclearData;
       int nGroups = nd->_energies.size() - 1;
       vector<double> energy(nGroups);
       for (unsigned ii=0; ii<nGroups; ++ii)
          energy[ii] = (nd->_energies[ii] + nd->_energies[ii+1])/2.0;
-  
-  
+
+
       MaterialDatabase* matDB = monteCarlo->_materialDatabase;
       unsigned nMaterials = matDB->_mat.size();
-    
+
       map<string, vector<XC_Data> > xcTable;
-  
-    
+
+
       // for each material
       for (unsigned iMat=0; iMat<nMaterials; ++iMat)
       {
@@ -449,7 +451,7 @@ namespace
                     case NuclearDataReaction::Undefined:
                      qs_assert(false);
                      break;
-                  }   
+                  }
                }
             }
          }
@@ -470,7 +472,7 @@ namespace
          fprintf(xSec, "  %s_a  %s_f  %s_s", materialName.c_str(), materialName.c_str(), materialName.c_str());
       }
       fprintf(xSec,"\n");
-  
+
       // now the data
       for (unsigned ii=0; ii<nGroups; ++ii)
       {
