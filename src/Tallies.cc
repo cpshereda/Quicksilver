@@ -6,7 +6,9 @@
 #include "Globals.hh"
 #include "MC_Fast_Timer.hh"
 
+#ifdef DAAP_LOG
 #include "daap_log.h"
+#endif
 
 #include <vector>
 using std::vector;
@@ -64,7 +66,9 @@ void Tallies::CycleFinalize(MonteCarlo *monteCarlo)
 
     PrintSummary(monteCarlo);
 
+#ifdef DAAP_LOG
     daapLogHeartbeat();
+#endif
 
     _balanceCumulative.Add(_balanceTask[0]);
 

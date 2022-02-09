@@ -23,7 +23,7 @@
 #include "cudaUtils.hh"
 #include "cudaFunctions.hh"
 
-#include "daap_log.h"
+//#include "daap_log.h"
 
 using std::vector;
 using std::string;
