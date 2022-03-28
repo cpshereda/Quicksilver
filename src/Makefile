@@ -128,7 +128,7 @@ OPTFLAGS = -g -O2
 ifdef DAAP_LOG
 DAAPFLAGS += -DDAAP_LOG -I${DAAP_ROOT}/include
 DAAPLDFLAGS += -L${DAAP_ROOT}/lib -ldaap_log
-endif # have to provide -DDAAP_LOG to build with daap
+endif # have to provide DAAP_LOG=1 to build with daap
 CXX=mpicxx
 CXXFLAGS = -std=c++11 $(OPTFLAGS) -Wpedantic
 CPPFLAGS = $(MPI_FLAGS) $(OPENMP_FLAGS) $(DAAPFLAGS)
